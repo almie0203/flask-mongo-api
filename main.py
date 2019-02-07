@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+# Import
 from app.api import api
 
 # REST API

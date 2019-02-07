@@ -1,9 +1,12 @@
+# Author: Ruel Mindo
+
+# Import
 from flask import Flask, make_response, request, jsonify
 from pymongo import MongoClient
 
-
+# Instantiate
 flask = Flask(__name__)
-mongo = MongoClient('localhost', 27017)['sendtics']
+mongo = MongoClient('localhost', 27017)['api']
 
 
 
