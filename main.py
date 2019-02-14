@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 # Import
-from app.api import api
+from app.route import route
 
 # REST API
-api = api()
+api = route()
 
 # Run the App
 if __name__ == '__main__':

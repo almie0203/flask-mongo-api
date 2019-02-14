@@ -1,18 +1,10 @@
-from flask import Flask, request, jsonify
-from pymongo import MongoClient
+import base64
 
 
+encoded = base64.b64encode(bytes('Test data', 'utf-8')).decode('ascii').replace('=', '')
 
+print(encoded)
 
-mo = MongoClient('localhost', 27017)
+decoded = base64.b64decode(encoded).decode('ascii')
 
-db = mo['sendtics']
-
-
-
-user = db.users.find_one({'id': 1})
-
-
-print({'result': user})
-
-
+print(decoded)
