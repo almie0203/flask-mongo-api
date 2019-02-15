@@ -7,6 +7,12 @@ from app.database.mongo import Mongo
 # Flask Framework
 from flask import Flask, jsonify, request, make_response
 
+# Date Time
+import time
+import datetime
+import calendar
+
+
 
 
 # Application
@@ -29,26 +35,38 @@ class App:
 	# Result and http response
 	def result(self, method, data):
 
-		valid = self.auth.verify(request.headers.get('authorization'))
+		token = request.headers.get('authorization')
 
+		parse = self.auth.parse(token)
 
-		if valid:
+		if token and parse:
 
-			if data:
+			user = self.mongo.app.user(parse['payload']['id'])
 
-				if '_id' in data:
+			if user and user['token'] == parse['token']:
 
-					data.pop('_id')
+				verify = self.auth.verify(user['secret'], parse['payload'], parse['signature'])
 
-				return self.response({'message': 'Ok', 'result': data}, 200)
+				if verify == True:
 
-			else:
+					if data:
 
-				return self.response({'message': 'Not found'}, 404)
+						if '_id' in data:
 
-		else:
+							data.pop('_id')
 
-			return self.response({'message': 'Unauthorized'}, 401)
+						return self.response({'message': 'Ok', 'result': data}, 200)
+
+					else:
+
+						return self.response({'message': 'Not found'}, 404)
+
+				else:
+
+					return self.response({'message': verify['error']}, 401)
+
+		
+		return self.response({'message': 'Unauthorized'}, 401)
 
 
 
@@ -64,6 +82,19 @@ class App:
 
 
 
-	def generatetoken(self):
+	def expire(self, days = False):
 
-		return self.auth.createtoken(bytes('eubgitnh93578tghf8j93m4bh4035juh6y8y5j3q', 'utf-8'), bytes(str({"id":1,"domain":"example.com","exp":12345678765}), 'utf-8'))
+		today = datetime.date.today()
+
+		if days == False:
+
+			days = calendar.monthrange(today.year, today.month)[1]
+
+		return time.mktime((today + datetime.timedelta(days=days)).timetuple())
+
+
+
+
+	def generatetoken(self, exp = False):
+
+		return self.auth.createtoken(bytes('eubgitnh93578tghf8j93m4bh4035juh6y8y5j3q', 'utf-8'), bytes(str({"id":1,"domain":"example.com","exp":self.expire(exp)}), 'utf-8'))

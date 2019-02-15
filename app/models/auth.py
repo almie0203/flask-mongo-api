@@ -1,3 +1,4 @@
+import time
 import json
 import hmac
 import base64
@@ -37,7 +38,7 @@ class Auth:
 
 		try:
 			
-			return self.utf8(base64.b64decode(data+'=='))
+			return self.utf8(base64.b64decode(data +'=='))
 
 		except Exception as e:
 			
@@ -57,33 +58,35 @@ class Auth:
 
 
 
-	def verify(self, auth):
+	def parse(self, auth):
 
-		b = str(auth).replace('Bearer ', '')
+		t = str(auth).replace('Bearer ', '')
 
-		# Payload
-		p = self.decode(b[32:len(b)-118])
+		# Decode
+		d = self.decode(t[32:len(t)-118])
+		s = self.decode(t[-118:len(t)-32])
 
-		if p:
+		if d and s:
 
-			p = json.loads(p.replace("\'", "\""))
+			return {'token': t, 'payload': json.loads(d.replace("\'", "\"")), 'signature': s}
 
 
-			if 'id' in p:
 
-				u = self.app.user(p['id'])
+	def verify(self, secret, payload, signature):
 
-				if b == u['token']:
+		if payload['exp'] > time.time():
+			# Remake the signature
+			s = self.decode(self.sign(bytes(secret, 'utf-8'), bytes(str(payload), 'utf-8')))
+			# Compare two signature if its correct
+			if s and hmac.compare_digest(signature, s):
 
-					# Remake signature from received token
-					s = self.decode(self.sign(bytes(u['secret'], 'utf-8'), bytes(str(p), 'utf-8')))
+				return True
 
-					if s:
-							
-						# Compare two signature if its correct
-						if hmac.compare_digest(self.decode(b[-118:len(b)-32]),s):
+			return {'error': 'Invalid token'}
 
-							return p
+		else:
+
+			return {'error': 'Expired token'}
 
 
 
