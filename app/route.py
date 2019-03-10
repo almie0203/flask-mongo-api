@@ -5,9 +5,6 @@ from app.app import App
 # Instantiate App
 app = App()
 
-# API Database
-api = app.mongo.api
-
 
 
 # Route
@@ -19,7 +16,7 @@ def route():
 # Handle not found error
 @app.flask.errorhandler(404)
 # Not Found
-def not_found(e):
+def notfound(e):
 
     return app.response({'message': 'Not found'}, 404)
 
@@ -29,19 +26,9 @@ def not_found(e):
 # Handle method not allowed error
 @app.flask.errorhandler(405)
 # Not Allowed
-def not_allowed(e):
+def notallowed(e):
 
     return app.response({'message': 'Method Not Allowed'}, 405)
-
-
-
-
-# Set record
-@app.flask.route('/<string:name>', methods=['POST'])
-# Set single record
-def set_record(name):
-
-    return app.result('POST', api.insert(name, app.request.json))
 
 
 
@@ -49,9 +36,19 @@ def set_record(name):
 # Get Records
 @app.flask.route('/<string:name>', methods=['GET'])
 # Get records with the limit of 20
-def get_records(name):
+def getrecords(name):
 
-    return app.result('GET', api.select(name))
+    return app.result('read', name)
+
+
+
+
+# Set record
+@app.flask.route('/<string:name>', methods=['POST'])
+# Set single record
+def setrecord(name):
+
+    return app.result('create', name, app.request.json)
 
 
 
@@ -59,9 +56,9 @@ def get_records(name):
 # Get Record
 @app.flask.route('/<string:name>/<int:id>', methods=['GET'])
 # Get single record by id
-def get_record(name, id):
+def getrecord(name, id):
 
-    return app.result('GET', api.select(name, {'id': id}))
+    return app.result('read', name, {'query': {'id': id}})
 
 
 
@@ -69,9 +66,9 @@ def get_record(name, id):
 # Update Record
 @app.flask.route('/<string:name>/<int:id>', methods=['PUT'])
 # Update single record by id
-def update_record(name, id):
+def updaterecord(name, id):
 
-    return app.result('GET', api.update(name, {'id': id}))
+    return app.result('update', name, {'query': {'id': id}, 'data': app.request.json})
 
 
 
@@ -79,6 +76,6 @@ def update_record(name, id):
 # Delete record
 @app.flask.route('/<string:name>/<int:id>', methods=['DELETE'])
 # Delete single record by id
-def delete_record(name, id):
+def deleterecord(name, id):
 
-    return app.result('GET', api.delete(name, {'id': id}))
+    return app.result('delete', name, {'query': {'id': id}})

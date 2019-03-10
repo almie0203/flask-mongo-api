@@ -7,11 +7,8 @@ from app.database.mongo import Mongo
 # Flask Framework
 from flask import Flask, jsonify, request, make_response
 
-# Date Time
+# Time
 import time
-import datetime
-import calendar
-
 
 
 
@@ -21,52 +18,80 @@ class App:
 
 	def __init__(self):
 
-		# MongoDB
-		self.mongo = Mongo()
+		# Request
+		self.request = request
+
+		# Jsonify
+		self.jsonify = jsonify
+
+
+		# Authentication
+		self.auth = Auth()
 
 		# Flask Framework
 		self.flask = Flask(__name__)
 
-		# Authentication
-		self.auth = Auth(self.mongo)
+		# MongoDB
+		self.mongo = Mongo(self.auth)
 
 
 
-	# Result and http response
-	def result(self, method, data):
+	# Success
+	def success(self, data):
 
-		token = request.headers.get('authorization')
+		if data:
 
-		parse = self.auth.parse(token)
+			if '_id' in data:
 
-		if token and parse:
+				data.pop('_id')
 
-			user = self.mongo.app.user(parse['payload']['id'])
+			return self.response({'message': 'Ok', 'result': data}, 200)
 
-			if user and user['token'] == parse['token']:
+		else:
 
-				verify = self.auth.verify(user['secret'], parse['payload'], parse['signature'])
+			return self.response({'message': 'Not found'}, 404)
 
-				if verify == True:
 
-					if data:
 
-						if '_id' in data:
 
-							data.pop('_id')
+	def result(self, action, base, args = False):
 
-						return self.response({'message': 'Ok', 'result': data}, 200)
+		p = self.auth.parse(request.headers.get('authorization'))
 
-					else:
+		if p:
 
-						return self.response({'message': 'Not found'}, 404)
+			# User
+			u = self.mongo.app.user(p['payload']['id'])
+
+			# Check token
+			if u and u['token'] == p['token']:
+
+				# Verify token
+				v = self.auth.verify(u['secret'], p['payload'], p['signature'])
+
+				if v == True:
+
+					# return self.success(self.generatetoken({'days': 6}))
+					# return self.success(self.auth.encode('sendtics.com') +'.'+ self.auth.encode('users'))
+					return self.success(getattr(self.mongo.api, action)(self.auth.encode(p['payload']['domain']) +'.'+ self.auth.encode(base), args))
 
 				else:
 
-					return self.response({'message': verify['error']}, 401)
+					return self.unauthorized(v['error'])
 
-		
-		return self.response({'message': 'Unauthorized'}, 401)
+			else:
+
+				return self.unauthorized('Invalid Token')
+
+		return self.unauthorized('Unauthorized')
+
+
+
+
+	# Unauthorized
+	def unauthorized(self, message):
+
+		return self.response({'message': message}, 401)
 
 
 
@@ -76,25 +101,6 @@ class App:
 
 	    if data and status:
 
-	        data['status'] = status
+	    	data['status'] = status
 
-	        return make_response(jsonify(data), status)
-
-
-
-	def expire(self, days = False):
-
-		today = datetime.date.today()
-
-		if days == False:
-
-			days = calendar.monthrange(today.year, today.month)[1]
-
-		return time.mktime((today + datetime.timedelta(days=days)).timetuple())
-
-
-
-
-	def generatetoken(self, exp = False):
-
-		return self.auth.createtoken(bytes('eubgitnh93578tghf8j93m4bh4035juh6y8y5j3q', 'utf-8'), bytes(str({"id":1,"domain":"example.com","exp":self.expire(exp)}), 'utf-8'))
+	    	return make_response(jsonify(data), status)

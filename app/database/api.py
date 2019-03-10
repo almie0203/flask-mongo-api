@@ -1,21 +1,24 @@
 
 
 
-class api(object):
+class api:
 
-	def __init__(self, mongo):
+	def __init__(self, mongo, auth):
+
+		# Auth
+		self.auth = auth
 
 		# API Database
 		self.api = mongo['api']
 
 
 
-	# Select
-	def select(self, name, arg=False):
+	# Read Record
+	def read(self, name, arg=False):
 
 		if arg:
 
-			return self.api[name].find_one(arg)
+			return self.api[name].find_one(arg['query'])
 
 		else:
 	
@@ -32,8 +35,8 @@ class api(object):
 
 
 
-	# Insert
-	def insert(self, name, arg=False):
+	# Create Record
+	def create(self, name, arg=False):
 
 		if arg:
 
@@ -49,9 +52,13 @@ class api(object):
 
 
 	# Update
-	def update(self, name, arg=False):
+	def update(self, name, arg):
 
-		return {}
+		co = self.api[name]
+
+		if co.update_one(arg['query'], {'$set': arg['data']}).matched_count > 0:
+
+			return co.find_one(arg['query'])
 
 
 
@@ -59,5 +66,8 @@ class api(object):
 	# Delete
 	def delete(self, name, arg=False):
 
-		return {}
+		co = self.api[name]
 
+		if not co.delete_one(arg['query']):
+
+			return
